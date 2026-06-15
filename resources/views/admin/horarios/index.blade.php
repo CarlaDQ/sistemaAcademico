@@ -12,7 +12,7 @@
         <i class="bi bi-plus-lg me-1"></i> Nuevo Horario
     </a>
 </div>
-
+// prueba de version
 <div class="card" style="border-radius:14px;border:none;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
     <div class="card-body">
         <form method="GET" class="row g-2 mb-3">
