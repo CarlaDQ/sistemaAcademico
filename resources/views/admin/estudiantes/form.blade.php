@@ -29,10 +29,16 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" style="font-weight:600;color:#444;font-size:0.85rem;">CI / Cédula <span class="text-danger">*</span></label>
-                    <input type="text" name="ci" class="form-control @error('ci') is-invalid @enderror"
-                           value="{{ old('ci', $estudiante->usuario->ci ?? '') }}" required placeholder="12345678">
+                    <div class="input-group">
+                        <input type="text" name="ci" id="ci_estudiante" class="form-control @error('ci') is-invalid @enderror"
+                               value="{{ old('ci', $estudiante->usuario->ci ?? '') }}" required placeholder="12345678">
+                        <button type="button" id="btn-consultar-segip" class="btn btn-outline-warning" title="Consultar SEGIP">
+                            <i class="bi bi-search"></i> SEGIP
+                        </button>
+                    </div>
                     @error('ci') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     <small class="text-muted">La contraseña se genera como: CI + "davpin"</small>
+                    <div id="segip-resultado" style="font-size:0.8rem;margin-top:4px;"></div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" style="font-weight:600;color:#444;font-size:0.85rem;">Teléfono</label>
@@ -223,6 +229,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         btnBuscar.addEventListener('click', buscarPadre);
         inputCi.addEventListener('blur', buscarPadre);
+    }
+
+    // === CONSULTAR SEGIP ===
+    var btnSegip = document.getElementById('btn-consultar-segip');
+    var inputCiEst = document.getElementById('ci_estudiante');
+    var segipResultado = document.getElementById('segip-resultado');
+
+    if (btnSegip && inputCiEst) {
+        function consultarSegip() {
+            var ci = inputCiEst.value.trim();
+            if (!ci) {
+                segipResultado.innerHTML = '<span class="text-warning">Ingrese un CI primero.</span>';
+                return;
+            }
+            segipResultado.innerHTML = '<span class="text-muted"><i class="bi bi-arrow-clockwise"></i> Consultando SEGIP...</span>';
+
+            fetch('{{ route("admin.integracion.segip", "") }}/' + encodeURIComponent(ci))
+                .then(function(r) {
+                    if (!r.ok) throw new Error('No encontrado');
+                    return r.json();
+                })
+                .then(function(data) {
+                    if (data.encontrado) {
+                        document.querySelector('[name="nombre"]').value = data.nombre || '';
+                        var apellido = (data.apellido_paterno || '') + ' ' + (data.apellido_materno || '');
+                        document.querySelector('[name="apellido"]').value = apellido.trim();
+                        if (data.fecha_nacimiento) {
+                            document.querySelector('[name="fecha_nacimiento"]').value = data.fecha_nacimiento;
+                        }
+                        if (data.genero) {
+                            var gen = data.genero.toLowerCase() == 'm' ? 'masculino' : (data.genero.toLowerCase() == 'f' ? 'femenino' : '');
+                            if (gen) document.querySelector('[name="genero"]').value = gen;
+                        }
+                        segipResultado.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> SEGIP: ' + data.nombre_completo + ' | ' + (data.fecha_nacimiento || 'sin fecha') + '</span>';
+                    } else {
+                        segipResultado.innerHTML = '<span class="text-warning">' + (data.error || 'No encontrado en SEGIP') + '</span>';
+                    }
+                })
+                .catch(function(err) {
+                    segipResultado.innerHTML = '<span class="text-danger">CI no encontrado en SEGIP. Pueble la base con POST /api/segip/poblar</span>';
+                });
+        }
+        btnSegip.addEventListener('click', consultarSegip);
     }
 });
 </script>

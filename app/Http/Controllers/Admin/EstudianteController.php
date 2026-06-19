@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 
 class EstudianteController extends Controller
 {
@@ -155,6 +156,22 @@ class EstudianteController extends Controller
                 ]);
             }
         });
+
+        // Registrar en RUDE (auto-registro)
+        try {
+            $curso = Curso::find($validated['id_curso']);
+            $rudeApi = url('API_SEGIP');
+            $r = Http::post("$rudeApi/api/integracion/registrar-desde-ci", [
+                'ci' => $validated['ci'],
+                'curso' => $curso->nombre ?? 'Sin curso',
+                'gestion' => 2026,
+            ]);
+            if ($r->successful()) {
+                $estudiante->update(['codigo_rude' => $r['codigo_rude'] ?? null]);
+            }
+        } catch (\Exception $e) {
+            // Si falla la integracion, no bloqueamos la creacion
+        }
 
         $msg = 'Estudiante creado. Email: auto-generado. Contraseña: ' . $validated['ci'] . 'davpin';
         if ($request->filled('padre_existente')) {

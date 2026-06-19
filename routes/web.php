@@ -39,10 +39,62 @@ Route::any('/test-post', function () {
     return 'POST funcionó: ' . json_encode(request()->all());
 });
 
+Route::get('/test-rude', function () {
+    $apiBase = url('API_SEGIP');
+    $resultados = [];
+
+    // 1. Poblar SEGIP
+    $client = new \GuzzleHttp\Client(['verify' => false]);
+    try {
+        $client->post("$apiBase/api/segip/poblar", ['json' => ['cantidad' => 100]]);
+        $resultados[] = '✅ SEGIP poblado con 100 personas';
+    } catch (\Exception $e) {
+        $resultados[] = '❌ Error poblando SEGIP: ' . $e->getMessage();
+    }
+
+    // 2. Consultar un CI del SEGIP
+    try {
+        $personas = $client->get("$apiBase/api/segip/personas")->getBody();
+        $personas = json_decode($personas, true);
+        if (!empty($personas['personas'])) {
+            $ci = $personas['personas'][0]['ci'];
+            $consulta = $client->get("$apiBase/api/segip/consultar/$ci")->getBody();
+            $consulta = json_decode($consulta, true);
+            $resultados[] = '✅ SEGIP consultado CI ' . $ci . ': ' . $consulta['consulta']['nombre_completo'];
+        }
+    } catch (\Exception $e) {
+        $resultados[] = '❌ Error consultando SEGIP: ' . $e->getMessage();
+    }
+
+    // 3. Registrar en RUDE desde CI
+    try {
+        $rude = $client->post("$apiBase/api/integracion/registrar-desde-ci", [
+            'json' => ['ci' => $ci, 'curso' => 'Primero de Secundaria', 'gestion' => 2026]
+        ])->getBody();
+        $rude = json_decode($rude, true);
+        $resultados[] = '✅ RUDE registrado: ' . $rude['codigo_rude'];
+    } catch (\Exception $e) {
+        $resultados[] = '❌ Error registrando RUDE: ' . $e->getMessage();
+    }
+
+    // 4. Estadisticas RUDE
+    try {
+        $stats = $client->get("$apiBase/api/rude/estadisticas")->getBody();
+        $stats = json_decode($stats, true);
+        $resultados[] = '📊 Total estudiantes en RUDE: ' . $stats['estadisticas']['total_estudiantes'];
+    } catch (\Exception $e) {
+        $resultados[] = '❌ Error estadisticas: ' . $e->getMessage();
+    }
+
+    return view('test-rude', compact('resultados'));
+});
+
 Route::prefix('admin')->name('admin.')->middleware(['role:administrador'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('usuarios', UsuarioController::class)->parameters(['usuarios' => 'usuario']);
     Route::resource('estudiantes', AdminEstudianteController::class)->parameters(['estudiantes' => 'estudiante']);
+    Route::get('/integracion/segip/{ci}', [App\Http\Controllers\Admin\RudeIntegrationController::class, 'consultarSegip'])->name('integracion.segip');
+    Route::post('/integracion/rude/{estudiante}', [App\Http\Controllers\Admin\RudeIntegrationController::class, 'registrarEnRude'])->name('integracion.rude');
     Route::resource('docentes', AdminDocenteController::class)->parameters(['docentes' => 'docente']);
     Route::resource('padres', App\Http\Controllers\Admin\PadreController::class)->parameters(['padres' => 'padre']);
     Route::get('padres/buscar/{ci}', [App\Http\Controllers\Admin\PadreController::class, 'buscarPorCi'])->name('padres.buscar');

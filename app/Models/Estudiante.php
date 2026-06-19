@@ -13,7 +13,7 @@ class Estudiante extends Model
     protected $primaryKey = 'id_estudiante';
 
     protected $fillable = [
-        'id_usuario', 'id_curso', 'codigo_estudiante',
+        'id_usuario', 'id_curso', 'codigo_estudiante', 'codigo_rude',
         'fecha_nacimiento', 'genero', 'direccion_cifrada',
         'observaciones_cifradas', 'activo',
     ];

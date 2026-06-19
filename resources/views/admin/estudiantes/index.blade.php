@@ -40,6 +40,7 @@
                         <th>Código</th>
                         <th>Nombre</th>
                         <th>Curso</th>
+                        <th>Código RUDE</th>
                         <th>Género</th>
                         <th>Acciones</th>
                     </tr>
@@ -50,6 +51,13 @@
                         <td><code>{{ $e->codigo_estudiante }}</code></td>
                         <td>{{ $e->usuario->nombre ?? '—' }} {{ $e->usuario->apellido ?? '' }}</td>
                         <td>{{ $e->curso->nombre ?? '—' }}</td>
+                        <td>
+                            @if($e->codigo_rude)
+                                <span class="badge bg-info text-dark">{{ $e->codigo_rude }}</span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td>{{ $e->genero ?? '—' }}</td>
                         <td>
                             <a href="{{ route('admin.estudiantes.edit', $e->id_estudiante) }}" class="btn btn-sm" title="Editar" style="background:#e8f0fe;color:#1e3c72;border:none;border-radius:8px;padding:6px 10px;">
@@ -62,7 +70,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" class="text-center py-4 text-muted">No hay estudiantes registrados.</td></tr>
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No hay estudiantes registrados.</td></tr>
                     @endforelse
                 </tbody>
             </table>
